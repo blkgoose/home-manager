@@ -1,15 +1,9 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{ config, lib, pkgs, ... }:
 let
 
   cfg = config.services.keynav;
 
-in
-{
+in {
   options.services.keynav = {
     enable = lib.mkEnableOption "keynav";
 
@@ -30,14 +24,13 @@ in
 
   config = lib.mkIf cfg.enable {
     assertions = [
-      (lib.hm.assertions.assertPlatform "services.keynav" pkgs lib.platforms.linux)
+      (lib.hm.assertions.assertPlatform "services.keynav" pkgs
+        lib.platforms.linux)
     ];
 
     home.file.".keynavrc" = lib.mkIf (cfg.extraConfig != { }) {
       text = lib.concatStringsSep "\n"
-        (lib.mapAttrsToList (key: value: "${key} ${value}") cfg.extraConfig)
-        + "\n";
-      onChange = "systemctl --user restart keynav.service || true";
+        (lib.mapAttrsToList (key: value: "${key} ${value}") cfg.extraConfig);
     };
 
     systemd.user.services.keynav = {
@@ -45,6 +38,7 @@ in
         Description = "keynav";
         After = [ "graphical-session.target" ];
         PartOf = [ "graphical-session.target" ];
+        X-Restart-Triggers = [ "${config.home.file.".keynavrc".source}" ];
       };
 
       Service = {
@@ -53,9 +47,7 @@ in
         Restart = "always";
       };
 
-      Install = {
-        WantedBy = [ "graphical-session.target" ];
-      };
+      Install = { WantedBy = [ "graphical-session.target" ]; };
     };
   };
 }
